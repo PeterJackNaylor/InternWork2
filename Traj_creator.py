@@ -14,11 +14,11 @@ import numpy as np
 
 
 class Traj_data:
-    def __init__(self,file_name=None):
+    def __init__(self,file_name=None,pkl_traj_file='/home/naylor/Documents/Work/Files/pkl'):
         print("Traj_data built")
 
 
-        local_dir_hdf5='/home/naylor/Documents/Work/Files/pkl'
+        local_dir_hdf5=pkl_traj_file
         local_dir_pkl=local_dir_hdf5
         
         
@@ -185,7 +185,7 @@ class Traj_data:
             list_feat.sort()       
             if normalize:
                 X_=(self.data.ix[list_feat,self.names])/(self.data.ix[list_feat[0],self.names])
-                self.data[list_feat,self.names]=X_
+                self.data.ix[list_feat,self.names]=X_
             
             self.data.ix[list_feat,"traj"]=i
             i+=1
