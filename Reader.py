@@ -67,6 +67,8 @@ class Reader():
         self.type="HDF5"
         self.file_name=file_name
         
+        self.Var_missing=np.array(self.names)[[62,92,122,152]]
+
     def arrf_read(self,file_name):
         reader = ArffReader(file_name)
         data = None
@@ -82,6 +84,16 @@ class Reader():
         self.type="Arrf"
         self.file_name=file_name
         self.names=reader.lstFeatureNames
+        self.Var_missing=np.array(self.names)[[62,92,122,152]]
+    def renaming_for_mitosis(self):
+        def f(name):
+            if name in ['Interphase','Elongated','Large']:
+                return('S')
+            elif name in ['Metaphase', 'Anaphase', 'Prometaphase', 'MetaphaseAlignment']:
+                return('M')
+            else:
+                return('O')
+        self.data["label"]=self.data.apply(lambda r: f(r["label"]),axis=1)
     def renaming(self):
         def bij(val_string):
             if   val_string=="G1":
@@ -93,7 +105,11 @@ class Reader():
             else:
                 return "S"
         self.data["label"]=self.data.apply(lambda r: bij(r["label"]),axis=1)
-        
+    def missing_features_data(self):
+        for name in self.Var_missing:
+            if name in self.data.columns:
+                self.data = self.data.drop(name, 1)
+        self.names=[el for el in self.names if el not in self.Var_missing]    
 """
 file_name="0015PCNA.hdf5"   
 t=Reader()
