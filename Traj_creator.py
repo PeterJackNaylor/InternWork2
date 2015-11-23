@@ -65,6 +65,7 @@ class Traj_data:
         a_1=a[a.keys()[1]][first][second]
         
         self.trajectories=[a_1.lstTraj[ind] for ind in range(len(a_1.lstTraj)) if ind in right_traj_ind]
+        self.all_trajectories=[a_1.lstTraj[ind] for ind in range(len(a_1.lstTraj))]        
         
         if file_loc_hdf5 is None:
             file_loc=File_num_hdf5[0]
