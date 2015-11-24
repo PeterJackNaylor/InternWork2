@@ -170,11 +170,16 @@ class Traj_data:
         self.data = self.data.join(self.labels_and_line["Type"])
         self.train=self.data[pd.notnull(self.data["Type"])]
 
-    def Add_traj(self,normalize=False,num_traj=0):
+    def Add_traj(self,normalize=False,all_traj=False,average=False,diff=False,num_traj=0):
+        if all_traj:
+            traj_dic=self.all_trajectories
+        else:
+            traj_dic=self.trajectories
+            
         if num_traj!=0:
-            self.trajectories=[self.trajectories[i] for i in range(num_traj)]
+            traj_dic=[traj_dic[i] for i in range(num_traj)]
         i=0
-        for traj in self.trajectories:
+        for traj in traj_dic:
     
             list_feat=[]        
             for key in traj.lstPoints.keys():
@@ -185,7 +190,15 @@ class Traj_data:
                     print "this is not the best signe..., maybe wrong xml file or wrong hdf5, or wrong traj"
             list_feat.sort()       
             if normalize:
-                X_=(self.data.ix[list_feat,self.names])/(self.data.ix[list_feat[0],self.names])
+                if average:
+                    X_nor=np.mean(self.data.ix[list_feat,self.names],axis=1)
+                else:
+                    X_nor=self.data.ix[list_feat[0],self.names]
+                if diff:
+                    X_=self.data.ix[list_feat,self.names] - X_nor
+                else:
+                    X_=self.data.ix[list_feat,self.names] / X_nor
+                    
                 self.data.ix[list_feat,self.names]=X_
             
             self.data.ix[list_feat,"traj"]=i
