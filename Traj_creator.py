@@ -4,7 +4,7 @@ Created on Fri Oct 30 13:43:57 2015
 
 @author: naylor
 """
-
+print "hi"
 import os 
 import cPickle as pkl
 from Reader import Reader
