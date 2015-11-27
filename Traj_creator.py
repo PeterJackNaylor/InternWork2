@@ -4,7 +4,7 @@ Created on Fri Oct 30 13:43:57 2015
 
 @author: naylor
 """
-print "hi"
+
 import os 
 import cPickle as pkl
 from Reader import Reader
@@ -188,17 +188,17 @@ class Traj_data:
                 else:
                     print key
                     print "this is not the best signe..., maybe wrong xml file or wrong hdf5, or wrong traj"
-            list_feat.sort()       
+            list_feat.sort()
+
             if normalize:
                 if average:
-                    X_nor=np.mean(self.data.ix[list_feat,self.names],axis=1)
+                    X_nor=self.data[self.names].mean(axis=0)
                 else:
                     X_nor=self.data.ix[list_feat[0],self.names]
                 if diff:
                     X_=self.data.ix[list_feat,self.names] - X_nor
                 else:
                     X_=self.data.ix[list_feat,self.names] / X_nor
-                    
                 self.data.ix[list_feat,self.names]=X_
             
             self.data.ix[list_feat,"traj"]=i
@@ -214,7 +214,7 @@ class Traj_data:
 
 ##test=Traj_data(file_name="PCNA_data.csv")
 """
-num_str="0015"
+
 t=Traj_data()
 t.extracting(num_str,"both_channels_0015.hdf5",'secondary')
 t.Add_traj()
@@ -232,3 +232,31 @@ test2.hdf5_read("0015_PCNA_with_h2b_cut.hdf5",line_id=True,channel='secondary')
 sss=test2.data
 
 """
+## Well name
+num_str="0015"
+if os.path.isfile("H2B_N_F_A_test.csv"):
+    print "The file existed so I loaded it."
+    H2B_N_F_A = Traj_data(file_name="H2B_N_F_A_test.csv")#,pkl_traj_file="/home/pubuntu/Documents/InternWork2/Pkl_file") 
+    H2B_N_F_A.caract="Normalized by dividing by average"
+else:    
+    H2B_N_F_A=Traj_data()#(pkl_traj_file="/home/pubuntu/Documents/InternWork2/Pkl_file") 
+
+    H2B_N_F_A.extracting(num_str,"both_channels_0015.hdf5",'primary') 
+    ## Extracting the hdf5 file for the primary channel (H2b)
+    
+#    H2B_N_F_A.add_error() ## We had it so that the data won't have to do 0/0
+
+    H2B_N_F_A.Add_traj(normalize=True,all_traj=True,average=True,diff=False)## ,num_traj=10) ## (you can reduce the number of traj)
+    ## Adding Alice's work on tracking to have trajectories
+
+    file_loc="0015_PCNA.xml"
+
+    H2B_N_F_A.label_finder(file_loc) 
+    ## Finding associated labels by minimizing distance by click and distance of cell
+
+    H2B_N_F_A.renaming_and_merge() 
+    ## renaming the labels to have G1=="1", S=="S", G2=="2" and M=="M" 
+    #This procedure may take a long time.
+    H2B_N_F_A.caract="Normalized by dividing by average"
+
+    H2B_N_F_A.data.to_csv('H2B_N_F_A_test.csv',index=False,header=True)    
