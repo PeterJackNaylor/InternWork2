@@ -232,6 +232,7 @@ test2.hdf5_read("0015_PCNA_with_h2b_cut.hdf5",line_id=True,channel='secondary')
 sss=test2.data
 
 """
+"""
 ## Well name
 num_str="0015"
 if os.path.isfile("H2B_N_F_A_test.csv"):
@@ -260,3 +261,4 @@ else:
     H2B_N_F_A.caract="Normalized by dividing by average"
 
     H2B_N_F_A.data.to_csv('H2B_N_F_A_test.csv',index=False,header=True)    
+"""
