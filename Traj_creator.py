@@ -204,13 +204,25 @@ class Traj_data:
             self.data.ix[list_feat,"traj"]=i
             i+=1
         self.Group_of_traj=self.data.groupby('traj')
-    def update(self):
+        first_word="Normalized" if normalize else "Unnormalzied"
+        second_word="Averaged" if average else ""
+        if normalize:
+            third_word="Subtracted" if diff else "Divided"
+        else:
+            third_word=""
+        self.caract=first_word+"_"+second_word+"_"+third_word
+    def update(self,show=True):
         self.Group_of_traj=self.data.groupby('traj')
-        print "Updated member Group_of_traj"
+        if show:
+            print "Updated member Group_of_traj"
         we="0015"
         self.labels_and_line=self.data[[we+"_id_frame",we+"_pos_x",we+"_pos_y","Type"]]
         self.labels_and_line=self.labels_and_line[pd.notnull(self.labels_and_line['Type'])]
         self.train=self.data[pd.notnull(self.data["Type"])]
+    def filter_length_traj(self,mu):
+        new_data=self.data.groupby('traj').filter(lambda x: len(x) >= mu)
+        self.data=new_data
+        self.update(show=False)
 
 ##test=Traj_data(file_name="PCNA_data.csv")
 """
@@ -258,7 +270,6 @@ else:
     H2B_N_F_A.renaming_and_merge() 
     ## renaming the labels to have G1=="1", S=="S", G2=="2" and M=="M" 
     #This procedure may take a long time.
-    H2B_N_F_A.caract="Normalized by dividing by average"
 
     H2B_N_F_A.data.to_csv('H2B_N_F_A_test.csv',index=False,header=True)    
 """
