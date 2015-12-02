@@ -32,7 +32,9 @@ def Gaussian(X,gamma,p):  ## computes matrix K
 	return(ds+I)
 
 def TCA(X_S,X_T,m,mu,random_sample_T=1):
-        
+
+    X_S=sp.mat(X_S)
+    X_T=sp.mat(X_T)
     
     n_S=X_S.shape[0]
     n_T=X_T.shape[1]
