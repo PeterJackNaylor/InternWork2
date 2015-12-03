@@ -37,7 +37,7 @@ class RandomForest_Autotunner(RandomForestClassifier):
                                                         warm_start=False)
         self.n_estimators=n_range[0]
         self.n_range=n_range
-    def tunning(self,X,y,kfold=3,plot=True,fit_new_model=True):
+    def tunning(self,X,y,kfold=3,plot=True,fit_new_model=True,print_time=True):
         tic = time.clock()
         n,p=X.shape
         MSE=np.array([0.0]*len(self.n_range))
@@ -83,7 +83,8 @@ class RandomForest_Autotunner(RandomForestClassifier):
         if plot:
             pylab.plot(self.n_range,MSE)
         toc = time.clock()
-        print "Processing time: %f in sec" % (toc - tic)
+        if print_time:
+            print "Processing time: %f in sec" % (toc - tic)
 
 
 

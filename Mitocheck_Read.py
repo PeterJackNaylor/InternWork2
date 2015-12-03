@@ -116,6 +116,6 @@ class MitoCheck_Read():
                     file_pkl=file_location+"/"+fn+"/"+fn_bis
                 else:
                     file_hdf5=file_location+"/"+fn+"/"+fn_bis
-        Connexions,trajectories,mat_features,num_to_id,id_to_num,movie_length=File(Well,file_pkl,file_hdf5) ### features with a lot of missing values
-        self.final_mat=FilterTraj(trajectories,Connexions,threshold,mat_features,self.final_mat,id_to_num,Well,movie_length,length_threshold) ## filtering only the good trajectories
+            Connexions,trajectories,mat_features,num_to_id,id_to_num,movie_length=File(Well,file_pkl,file_hdf5) ### features with a lot of missing values
+            self.final_mat=FilterTraj(trajectories,Connexions,threshold,mat_features,self.final_mat,id_to_num,Well,movie_length,length_threshold) ## filtering only the good trajectories
 s=MitoCheck_Read()
