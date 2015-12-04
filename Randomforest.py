@@ -38,13 +38,14 @@ class RandomForest_Autotunner(RandomForestClassifier):
                                                         oob_score=oob_score, random_state=random_state, verbose=verbose,
                                                         warm_start=warm_start)
         self.n_range=n_range
+        self.MSE=None
     def tunning(self,X,y,kfold=3,plot=True,fit_new_model=True,opti=False):
         ##optimize with grid search
     
+        MSE=np.array([0.0]*len(self.n_range))
         tic = time.clock()
         if not opti:
             n,p=X.shape
-            MSE=np.array([0.0]*len(self.n_range))
             true_index=np.array(X.index)
             skf = StratifiedKFold(y, n_folds=kfold,shuffle=True)
             j=0
@@ -88,8 +89,22 @@ class RandomForest_Autotunner(RandomForestClassifier):
                 pylab.plot(self.n_range,MSE)
         else:
             parameters = {'n_estimators': self.n_range}
-            self.clf = grid_search.GridSearchCV(self, parameters,n_jobs=self.n_jobs, cv = kfold)
-            self.clf.fit(X, y)
+            clf = grid_search.GridSearchCV(self, 
+                                           parameters,
+                                           n_jobs=self.n_jobs,
+                                           cv = kfold)
+            clf.fit(X, y)
+            if fit_new_model:
+                self.n_estimators=clf.best_params_['n_estimators']
+                self.fit(X,y)
+            n_loop=len(clf.grid_scores_)
+            for i in range(n_loop):
+                MSE[i]=clf.grid_scores_[i][1]
+            print("hi")
+            self.MSE=MSE
+            if plot:
+                pylab.plot(self.n_range,MSE)
+            
         toc = time.clock()
         print "Processing time: %f in sec" % (toc - tic)
 
@@ -174,7 +189,7 @@ num_str="0015"
 
 if os.path.isfile("H2B_N_F_A.csv"):
     print "The file existed so I loaded it."
-    H2B_N_F_A = Traj_data(file_name="H2B_N_F_A.csv")#,pkl_traj_file="/home/pubuntu/Documents/InternWork2/Pkl_file") 
+    H2B_N_F_A = Traj_data(file_name="H2B_N_D_A.csv",pkl_traj_file="./Pkl_file") 
     H2B_N_F_A.caract="Normalized by dividing by average"
 else:    
     H2B_N_F_A=Traj_data()#(pkl_traj_file="/home/pubuntu/Documents/InternWork2/Pkl_file") 
@@ -198,9 +213,10 @@ else:
 
     H2B_N_F_A.data.to_csv('H2B_N_F_A.csv',index=False,header=True)
     
-    
+H2B_N_F_A.filter_length_traj(200)
 list_obj=[ H2B_N_F_A]
 kfold=3
+n_jobs=2
 D={}
 instances_to_keep=H2B_N_F_A.train[pd.notnull(H2B_N_F_A.train.traj)].index
 for obj in list_obj:
@@ -213,7 +229,7 @@ for obj in list_obj:
 
     values=[100 + i*10 for i in range(30)]
 
-    model=RandomForest_Autotunner(values,n_jobs=1)
+    model=RandomForest_Autotunner(values,n_jobs=n_jobs)
 
     model.tunning(obj.train.ix[instances_to_keep,obj.names],obj.train.ix[instances_to_keep,"Type"],
                   kfold,plot=False,fit_new_model=True,opti=True) #fit new model to get cm
@@ -221,11 +237,11 @@ for obj in list_obj:
 
     i_=np.argmax(model.MSE)
     n_tree=values[i_]
-    model.cm_normalized = model.cm.astype('float') / model.cm.sum(axis=1)[:, np.newaxis]
+ #   model.cm_normalized = model.cm.astype('float') / model.cm.sum(axis=1)[:, np.newaxis]
     D[obj.caract]={"tree_tunning":n_tree,
                    "best accuracy":max(model.MSE),
                    "Accuracy vector":model.MSE,
-                   "Confusion matrix":model.cm,
-                   "Normalized confusion matrix":model.cm_normalized,
+  #                 "Confusion matrix":model.cm,
+  #                 "Normalized confusion matrix":model.cm_normalized,
                    "Training sample":str(obj.train.ix[instances_to_keep,obj.names].shape[0])
                   }
