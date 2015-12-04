@@ -171,6 +171,7 @@ class Traj_data:
         self.train=self.data[pd.notnull(self.data["Type"])]
 
     def Add_traj(self,normalize=False,all_traj=False,average=False,diff=False,num_traj=0):
+## It can be improved with a grouby and lambda function (once they have traj
         if all_traj:
             traj_dic=self.all_trajectories
         else:
