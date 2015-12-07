@@ -85,7 +85,7 @@ def TCA(X_S,X_T,m,mu,random_sample_T=1):
     eigen_val=eigen_values[0][ind]
     eigen_vect=eigen_values[1][:,ind]
     
-    return([eigen_val,eigen_vect])
+    return(eigen_values)
 
 
 
