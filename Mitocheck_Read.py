@@ -102,11 +102,10 @@ def FilterTraj(trajectories,Connexions,threshold,mat_features,final_mat,id_to_nu
         final_mat=pd.concat([final_mat,new_mat])
     return(final_mat)
 
-
 class MitoCheck_Read():
     def __init__(self,file_location="./NegativeControl",threshold=0,length_threshold=10):
         print("MitoCheck_Read()")
-        self.final_mat=None
+        self.data=None
         self.Dir=[]
         for fn in os.listdir(file_location):
             self.Dir.append(fn)
@@ -117,5 +116,51 @@ class MitoCheck_Read():
                 else:
                     file_hdf5=file_location+"/"+fn+"/"+fn_bis
             Connexions,trajectories,mat_features,num_to_id,id_to_num,movie_length=File(Well,file_pkl,file_hdf5) ### features with a lot of missing values
-            self.final_mat=FilterTraj(trajectories,Connexions,threshold,mat_features,self.final_mat,id_to_num,Well,movie_length,length_threshold) ## filtering only the good trajectories
-s=MitoCheck_Read()
+            self.data=FilterTraj(trajectories,Connexions,threshold,mat_features,self.data,id_to_num,Well,movie_length,length_threshold) ## filtering only the good trajectories
+            p=self.data.shape[1]
+            self.names=self.data.columns[0:(p-5)]
+            self.Var_missing=self.names[[62,92,122,152]]
+    def Normalize(self,division=False,average=False):
+        self.data=self.data.sort_values(["Well","traj","Frame"])
+        grouped=self.data.groupby(['Well','traj'])
+        if division and not average:
+            print "Because of missing values I adjusted it, in the case X_t/X_0"
+            #To prevent 0/0
+            self.add_error()
+            
+        if average:
+            def g(x,names):
+                X_0=x[names].mean()
+                return(X_0)
+        else:
+            def g(x,names):
+                X_0=x.ix[x.index[0],names]
+                return(X_0)
+        if division:
+            def f(x,names):        
+                X_0=g(x,names)
+                x[names]=x[names]/X_0
+                return(x)
+        else:
+            def f(x,names):
+                X_0=g(x,names)
+                x[names]=x[names]-X_0
+                return(x)
+        self.data=grouped.apply(lambda x: f(x,self.names))
+    def add_error(self):
+        features1=[2,4,5,6,8,9,16,17,18,23]
+        features3=[31,32,33,34,35,37,42]
+        features2=[24,25,26,27,28,29,30,62,92,122,152]
+        features4=[0,3,153,162,164,217,218,219,220,221,237,238]
+        features=features1+features2+features3+features4
+        self.data.ix[self.data.index,self.data.columns[features]]+=1
+    def missing_features(self):
+        for name in self.Var_missing:
+            if name in self.data.columns:
+                self.data = self.data.drop(name, 1)
+        self.names=[el for el in self.names if el not in self.Var_missing]
+
+
+        
+#s=MitoCheck_Read()
+#s.Normalize()

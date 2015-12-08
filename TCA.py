@@ -1,54 +1,42 @@
 ### All the packages we need:
 
-from Reader import Reader
-from Randomforest import RandomForest_Autotunner,plot_matrix,Measure,check_rotate
-from Traj_creator import Traj_data
-
-import random
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-import os.path
-import cPickle as pkl
 
 import scipy as sp
-
+from scipy.spatial.distance import pdist,squareform
 import pdb
 
 def Gaussian(X,gamma,p):  ## computes matrix K
-	R=sp.spatial.distance.pdist(X, metric='euclidean', p=p, w=None, V=None, VI=None)
+	R=pdist(X, metric='euclidean', p=p, w=None, V=None, VI=None)
 	n=X.shape[0]
-	q = lambda i,j,n: n*j - j*(j+1)/2 + i - 1 - j
 	def f(x):
-		return(sp.exp(-gamma*(x**p)))
+		return(sp.exp(-(x**p)/(2*gamma**2)))
 	res=map(f,R)
-	ds=sp.spatial.distance.squareform(res)
-	for i in xrange( 1, n ):
-    		for j in xrange( i ):
-        		assert ds[ i, j ] == res[ q( i, j, n ) ]
+	ds=squareform(res)
 	I=sp.zeros(shape=(n,n))
 	sp.fill_diagonal(I,f(0))
 	return(ds+I)
 
-def TCA(X_S,X_T,m,mu,random_sample_T=1):
-
+def TCA(X_S,X_T,m,mu,gamma=1,p=2,random_sample_T=1):
+    
     X_S=sp.mat(X_S)
     X_T=sp.mat(X_T)
     
     n_S=X_S.shape[0]
-    n_T=X_T.shape[1]
+    n_T=X_T.shape[0]
     
-    if random_sample_T!=1:    
+    if random_sample_T!=1:
+        print str(int(n_T*random_sample_T))+" samples taken from the task domain"
         index_sample=sp.random.choice([i for i in range(n_T)],size=int(n_T*random_sample_T))
         X_T=X_T[index_sample,:]
-        n_T=X_T.shape[1]
+        
+        n_T=X_T.shape[0]
+        
 
     if m>(n_S+n_T):
-    	print("m is larger then n_S+n_T, so it has been changed")
-    	m=n_S+n_T
+        print("m is larger then n_S+n_T, so it has been changed")
+        m=n_S+n_T
     
-    
+
     L=sp.zeros(shape=(n_S+n_T,n_S+n_T))
     L_SS=sp.ones(shape=(n_S,n_S))/(n_S**2)
     L_TT=sp.ones(shape=(n_T,n_T))/(n_T**2)
@@ -59,41 +47,37 @@ def TCA(X_S,X_T,m,mu,random_sample_T=1):
     L[n_S:n_S+n_T,n_S:n_S+n_T]=L_TT
     L[n_S:n_S+n_T,0:n_S]=L_TS
     L[0:n_S,n_S:n_S+n_T]=L_ST
-
-    K=Gaussian(sp.vstack(X_S,X_T),1,2)
+    
+    K=Gaussian(sp.vstack([X_S,X_T]),gamma,p)
     n=K.shape[0]
-    I=sp.zeros(shape=(n,n))
+    Id=sp.zeros(shape=(n,n))
     H=sp.zeros(shape=(n_S+n_T,n_S+n_T))
-    sp.fill_diagonal(I,1)
+    sp.fill_diagonal(Id,1)
     sp.fill_diagonal(H,1)
     H-=1./(n_S+n_T)
     
-    I=sp.mat(I)
+    Id=sp.mat(Id)
     H=sp.mat(H)
     K=sp.mat(K)
     L=sp.mat(L)
-    
-    matrix_inv=I+mu*K*L*K
+    matrix_inv=Id+mu*K*L*K
     matrix_inv=sp.linalg.inv(matrix_inv)
     matrix=K*H*K
     matrix=matrix_inv*sp.mat(matrix)
     
     eigen_values=sp.linalg.eig(matrix)
-    pdb.set_trace()
-    
-    ind=[n_S+n_T-1-i for i in range(m)]
-    eigen_val=eigen_values[0][ind]
-    eigen_vect=eigen_values[1][:,ind]
-    
-    return(eigen_values)
 
+    eigen_val=eigen_values[0][0:m]
+    eigen_vect=eigen_values[1][:,0:m]
+    return(eigen_val,eigen_vect,K)
 
+"""
 
 num_str="0015" 
 ## Well name
 if os.path.isfile("H2b_data.csv"):
     print "The file existed so I loaded it."
-    H2b = Traj_data(file_name="H2b_data.csv",pkl_traj_file="/home/pubuntu/Documents/InternWork2/Pkl_file") 
+    H2b = Traj_data(file_name="H2B_N_D_0.csv",pkl_traj_file="./Pkl_file") 
 
 else:    
     H2b=Traj_data() 
@@ -115,4 +99,4 @@ else:
     
     H2b.data.to_csv('H2b_data.csv',index=False,header=True)    
 
-
+"""

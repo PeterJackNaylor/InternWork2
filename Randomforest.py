@@ -100,7 +100,6 @@ class RandomForest_Autotunner(RandomForestClassifier):
             n_loop=len(clf.grid_scores_)
             for i in range(n_loop):
                 MSE[i]=clf.grid_scores_[i][1]
-            print("hi")
             self.MSE=MSE
             if plot:
                 pylab.plot(self.n_range,MSE)
@@ -182,7 +181,7 @@ trys=RandomForest_Autotunner(_range,oob_score=True)
 trys.tunning(train.data[train.names],train.data['label'],3)
 """
 
-
+"""
 import os
 from Traj_creator import Traj_data
 num_str="0015"
@@ -245,3 +244,4 @@ for obj in list_obj:
   #                 "Normalized confusion matrix":model.cm_normalized,
                    "Training sample":str(obj.train.ix[instances_to_keep,obj.names].shape[0])
                   }
+"""
