@@ -77,7 +77,8 @@ def File(Well,file_pkl,file_hdf5):
     y_pred.columns=["line_id","y_hdf5"]
     mat_features=pd.merge(mat_features,y_pred, how='left', on="line_id")
     return(Connexions,trajectories,mat_features,num_to_id,id_to_num,movie_length)
-    
+
+
 def FilterTraj(trajectories,Connexions,threshold,mat_features,final_mat,id_to_num,Well,movie_length,length_threshold):
     for traj_n in range(len(trajectories)):
         s=Score(traj_n,trajectories,Connexions,id_to_num,movie_length,Well,mat_features)
@@ -98,7 +99,12 @@ def FilterTraj(trajectories,Connexions,threshold,mat_features,final_mat,id_to_nu
     new_mat=mat_features.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
     if final_mat is None:
         final_mat=new_mat
+        n_0=final_mat.shape[0]
+        final_mat.index=range(n_0)
     else:
+        n_0=final_mat.shape[0]
+        n_1=new_mat.shape[0]
+        new_mat.index=range(n_0,n_1+n_0)
         final_mat=pd.concat([final_mat,new_mat])
     return(final_mat)
 
@@ -163,7 +169,7 @@ class MitoCheck_Read():
                 self.data = self.data.drop(name, 1)
         self.names=[el for el in self.names if el not in self.Var_missing]
     def update(self,show=True):
-        self.Group_of_traj=self.data.groupby('traj')
+        self.Group_of_traj=self.data.groupby(['Well','traj'])
         if show:
             print "Updated member Group_of_traj"
         

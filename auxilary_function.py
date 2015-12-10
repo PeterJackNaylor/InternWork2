@@ -128,7 +128,6 @@ def EmissionMat(model_1,model_n_m):
     plt.show()
     return(EmissionMat)
     
-import pdb
 def prep_for_R(obj_norm,classif_3state="3state",classif_final="Pred_fusion",classif_Mitose="MitoseOrNot",num_str="0015"):
     def f(value_1,value_2):
         if value_1=="M":
@@ -136,11 +135,9 @@ def prep_for_R(obj_norm,classif_3state="3state",classif_final="Pred_fusion",clas
         else:
             return(value_2)
     obj_norm.data[classif_final]=obj_norm.data.apply(lambda r: f(r[classif_Mitose],r[classif_3state]),axis=1)
-    Mito=obj_norm.data[classif_final].dropna(axis=0, how='any')       
     print "\n We prioritize our predictor of mitosis events before the 3 state classfier giving \n us a four state classifier. \n"
     print "Frequency of predicted values for the 4 state classifier: \n"
-    pdb.set_trace()
-    print Mito.value_counts()
+    print obj_norm.data[classif_final].value_counts()
     obj_norm.update()
     
     ##First we are going to seperate beginning M's and ending M's
@@ -167,8 +164,11 @@ def prep_for_R(obj_norm,classif_3state="3state",classif_final="Pred_fusion",clas
                     new_obs[j]='B'  #Beginning
             obj_norm.data.ix[(obj_norm.data["Well"]==i_well) & (obj_norm.data["traj"]==i_traj),classif_final]=new_obs
         obj_norm.data.ix[obj_norm.data[classif_final]=='M',classif_final]='E' #Ending
-
-    data=obj_norm.data.ix[pd.notnull(obj_norm.data["traj"]),["traj",classif_final]]
+    
+    if "Well" in obj_norm.data.columns:
+        data=obj_norm.data.ix[pd.notnull(obj_norm.data["traj"]),["Well","traj","Frame",classif_final]]
+    else:
+        data=obj_norm.data.ix[pd.notnull(obj_norm.data["traj"]),["traj",num_str+"_id_frame",classif_final]]
     
     
     data.ix[data[classif_final]=='2',classif_final]="4"
@@ -181,20 +181,23 @@ def prep_for_R(obj_norm,classif_3state="3state",classif_final="Pred_fusion",clas
 def final_classif_HMM(data,obj_norm,
                   y_name_3state="Type",classif_Mitose="MitoseOrNot",
                   classif_3state="3state",classif_final="Pred_fusion",
-                  ratio=5.9/60,obs_number=0):
+                  classif_hmm="HMM",
+                  ratio=5.9/60,
+                  obs_number=0):
     print "Here we are going to join the corrected data (from R) to our current data in Python \n "
-    data.ix[data.HMM==1,"HMM"]="M"
-    data.ix[data.HMM==2,"HMM"]="1"
-    data.ix[data.HMM==3,"HMM"]="S"
-    data.ix[data.HMM==4,"HMM"]="2"
-    data.ix[data.HMM==5,"HMM"]="M"
-    to_join=pd.Series(data["HMM"])
+    data.ix[data.HMM==1,classif_hmm]="M"
+    data.ix[data.HMM==2,classif_hmm]="1"
+    data.ix[data.HMM==3,classif_hmm]="S"
+    data.ix[data.HMM==4,classif_hmm]="2"
+    data.ix[data.HMM==5,classif_hmm]="M"
+    to_join=pd.Series(data[classif_hmm])
     to_join.index=[int(el) for el in to_join.index]
     obj_norm.data=obj_norm.data.join(to_join)
     obj_norm.update()
     
-    print "Recap of our data: \n " 
-    print obj_norm.train[["traj","Type",classif_Mitose,classif_3state,classif_final,"HMM"]].head()
+    if hasattr(obj_norm, 'train'):
+        print "Recap of our data: \n " 
+        print obj_norm.train[["traj",y_name_3state,classif_Mitose,classif_3state,classif_final,classif_hmm]].head()
     
     
     i=0
@@ -205,10 +208,10 @@ def final_classif_HMM(data,obj_norm,
     print "We are going to count the lengths of the G1 phase, the S phase and the G2 phase: \n"
     print "To quickly asses we print the trajectory and his corrected trajectory, for sequence number:" + str(obs_number)
     for el in obj_norm.Group_of_traj:
-        new_obs=el[1]["HMM"]
+        new_obs=el[1][classif_hmm]
         if i==obs_number:
             test=np.array(el[1][classif_final])
-            test_hmm=np.array(el[1]["HMM"])
+            test_hmm=np.array(el[1][classif_hmm])
             print classif_final+": \n"
             print test
             print "\n Corrected HMM: \n"
@@ -234,26 +237,27 @@ def final_classif_HMM(data,obj_norm,
             S.append(-1)
             G2.append(-1)
             CC.append(-1)
-            
-    ratio=5.9/60
+    import pdb
+    pdb.set_trace()        
     G1_p=[el*ratio for el in G1 if el>-1]
     S_p= [el*ratio for el in S  if el>-1]
     G2_p=[el*ratio for el in G2 if el>-1]
-    CC_p=[el*ratio for el in CC if el>-1] 
+    CC_p=[el*ratio for el in CC if el>-1]
+    pdb.set_trace()  
     res = {'mean' : pd.Series([np.mean(G1_p), np.mean(S_p), np.mean(G2_p),np.mean(CC_p)], index=['G1', 'S', 'G2','CellCycle']),
            'Standard deviation' : pd.Series([np.std(G1_p),np.std(S_p),np.std(G2_p),np.std(CC_p)], index=['G1', 'S', 'G2','CellCycle']),
            'Accepted trajectories': pd.Series([len(G1_p),len(S_p),len(G2_p),len(CC_p)], index=['G1', 'S', 'G2','CellCycle'])
               }
               
-    
-    temp_X=obj_norm.train.ix[pd.notnull(obj_norm.train["HMM"]),["HMM","Type"]]
-    print temp_X["Type"].value_counts()
-    cm=confusion_matrix(temp_X.Type,temp_X.HMM)
-    
-    print "We reach an accuracy of %5.3f \n" %(float(cm.trace())/cm.sum())
-    
-    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    
-    plot_matrix(cm_normalized,title="Confusion matrix for the HMM classification")
+    if hasattr(obj_norm, 'train'):
+        temp_X=obj_norm.train.ix[pd.notnull(obj_norm.train[classif_hmm]),[classif_hmm,y_name_3state]]
+        print temp_X[y_name_3state].value_counts()
+        cm=confusion_matrix(temp_X[y_name_3state],temp_X[classif_hmm])
+        
+        print "We reach an accuracy of %5.3f \n" %(float(cm.trace())/cm.sum())
+        
+        cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        
+        plot_matrix(cm_normalized,title="Confusion matrix for the HMM classification")
 
     return(obj_norm,pd.DataFrame(res))
