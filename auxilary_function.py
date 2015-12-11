@@ -236,14 +236,11 @@ def final_classif_HMM(data,obj_norm,
             G1.append(-1)
             S.append(-1)
             G2.append(-1)
-            CC.append(-1)
-    import pdb
-    pdb.set_trace()        
+            CC.append(-1) 
     G1_p=[el*ratio for el in G1 if el>-1]
     S_p= [el*ratio for el in S  if el>-1]
     G2_p=[el*ratio for el in G2 if el>-1]
     CC_p=[el*ratio for el in CC if el>-1]
-    pdb.set_trace()  
     res = {'mean' : pd.Series([np.mean(G1_p), np.mean(S_p), np.mean(G2_p),np.mean(CC_p)], index=['G1', 'S', 'G2','CellCycle']),
            'Standard deviation' : pd.Series([np.std(G1_p),np.std(S_p),np.std(G2_p),np.std(CC_p)], index=['G1', 'S', 'G2','CellCycle']),
            'Accepted trajectories': pd.Series([len(G1_p),len(S_p),len(G2_p),len(CC_p)], index=['G1', 'S', 'G2','CellCycle'])
@@ -261,3 +258,16 @@ def final_classif_HMM(data,obj_norm,
         plot_matrix(cm_normalized,title="Confusion matrix for the HMM classification")
 
     return(obj_norm,pd.DataFrame(res))
+    
+def Modify_transProbs(transProbs):
+    n,p=transProbs.shape
+    transProbs_Mito=np.zeros(shape=(n,p))
+    for i in range(n-1):
+        TP_diag_i=transProbs[i,i]
+        TP_diag_i_1=transProbs[i+1,i+1]
+        TP_trans=transProbs[i,i+1]
+        transProbs_Mito[i,i+1]=(TP_diag_i**3)*(TP_diag_i_1**1)*(TP_trans**0)+(TP_diag_i**2)*(TP_diag_i_1**1)*(TP_trans**1)+(TP_diag_i**1)*(TP_diag_i_1**1)*(TP_trans**2)+(TP_diag_i**0)*(TP_diag_i_1**1)*(TP_trans**3)
+        transProbs_Mito[i,i]=1-transProbs_Mito[i,i+1]
+    transProbs_Mito[n-1,n-1]=1
+    return(transProbs_Mito)
+        
