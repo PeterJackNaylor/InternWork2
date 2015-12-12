@@ -1,7 +1,9 @@
 HMM_correct=function(data_temp,EmissionMat,y_label,obs_number=0){
-  
+  print("We are here going to correct the data predicted in the first part  
+         with a hidden markov where we infere the transition matrix with a 
+         strong prior knowlegde in biology. A five state classifier :" )
+  print("M_E -> G1 -> S -> G2 -> M_E")
   obs_number=0
-  print(paste("To assess briefly what is happening, we printed a sequence of observation, sequence number:",toString(obs_number) ))
   data=data_temp ## data_temp has to have a traj column and y_label
   library(HMM)
   trans=list()  #List of outputs
@@ -21,7 +23,7 @@ HMM_correct=function(data_temp,EmissionMat,y_label,obs_number=0){
                 emissionProbs=emission_matrix
                 ,startProbs=startProbs)
   
-  
+  print(paste("To assess briefly what is happening, we printed a sequence of observation, sequence number:",toString(obs_number) ))
   n_traj=max(data$traj)
   j=1
   for (i in 0:(n_traj-1)){
@@ -82,7 +84,51 @@ HMM_correct=function(data_temp,EmissionMat,y_label,obs_number=0){
   
   print(paste("To assess briefly what is happening, we printed the corrected sequence, number:",toString(obs_number) ))
 
-  for (i in 0:(n_traj-1))
+  for (i in 0:(n_traj-1)){
+    obs=data[data$traj==i,y_label]
+    new_obs=as.integer(viterbi(hmm,observation=obs))
+    data[data$traj==i,"HMM"]=new_obs
+    if (i==obs_number){
+      print(new_obs)
+    }
+  }
     
-  return(list(new_data=new_data,mean_t=mean_t,mean_e=mean_e,var_t=var_t,var_e=var_e,transProbs=transProbs))
+  return(list(new_data=data,mean_t=mean_t,mean_e=mean_e,var_t=var_t,var_e=var_e,transProbs=transProbs))
+}
+
+
+
+
+Predict_from_hmm=function(data,y_label,y_label_to_give,transProbs,emission_matrix,startProbs,obs_number=0){
+  hmm = initHMM(c("1","2","3","4","5"),c("1","2","3","4","5"),
+                transProbs=transProbs,
+                emissionProbs=emission_matrix  ##We still keep the confusion matrix of the first classification
+                ,startProbs=startProbs)
+  i=0
+  keys_=unique(data[c("Well","traj")])
+  rows_of_keys <- rownames(keys_) 
+  print(paste("To assess briefly what is happening, we printed the corrected sequence, number:",toString(obs_number) ))
+  for (r in rows_of_keys){
+    tup_data_frame=keys_[r,]
+    w=tup_data_frame$Well
+    t=tup_data_frame$traj
+    obs=data[(data$traj==t)&(data$Well==w),y_label]
+    if (sum(obs!="nan")>(length(obs)/2)){
+      new_obs=as.integer(viterbi(hmm,observation=obs))
+      data[(data$traj==t)&(data$Well==w),y_label_to_give]=new_obs
+      
+    }else{
+      
+      print("Only nan's here...id:")
+      print(r)
+    }
+    if (i==obs_number){
+      print(obs)
+      print(new_obs)
+      
+    }
+    i=i+1
+  }
+  return(data)
+  
 }
