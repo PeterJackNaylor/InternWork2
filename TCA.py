@@ -3,7 +3,6 @@
 
 import scipy as sp
 from scipy.spatial.distance import pdist,squareform
-import pdb
 
 def Gaussian(X,gamma,p):  ## computes matrix K
 	R=pdist(X, metric='euclidean', p=p, w=None, V=None, VI=None)
@@ -69,8 +68,83 @@ def TCA(X_S,X_T,m,mu,gamma=1,p=2,random_sample_T=1):
 
     eigen_val=eigen_values[0][0:m]
     eigen_vect=eigen_values[1][:,0:m]
-    return(eigen_val,eigen_vect,K)
+    return(eigen_val,eigen_vect,K,sp.vstack([X_S,X_T]))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pdb
+
+from scipy import linalg as LA
+import pandas as pd
+def Gaus_Dens(x,gamma,p):
+    return(sp.exp(-(x**p)/(2*gamma**2)))
+
+
+def kernel_estimation(x,x_i,gamma,p):
+    if sp.sum(pd.isnull(x-x_i))!=0:
+        pdb.set_trace()
+    NORM=LA.norm(x-x_i,p)
+    return Gaus_Dens(NORM,gamma,p)
+
+def new_feature(data_used,W_eigenVectors,x,gamma,p,names):
+    data_used["kernel_distance"]=data_used.apply(lambda x_i: kernel_estimation(x[names],x_i[names],gamma,p),axis=1)
+    #pdb.set_trace()
+    n=data_used.shape[0]
+    vertical_vect=sp.zeros(shape=(n,1))
+    vertical_vect[:,0]=sp.array(data_used["kernel_distance"])
+    new_feat=sp.mat(W_eigenVectors.T)*vertical_vect
+    return(sp.array(new_feat).flatten())
+
+
+
+def getting_kernel_projection(data,data_used,m,W_eigenVectors,gamma=1,p=2):
+    data_used.columns=data.columns
+    names=data.columns
+    new_feat=["TCA_"+str(i) for i in range(m)]
+    data.apply(lambda x: new_feature(data_used,W_eigenVectors,x,gamma,p,names),axis=1)
+    pdb.set_trace()
+    data[new_feat]=data.apply(lambda x: new_feature(data_used,W_eigenVectors,x,gamma,p,names),axis=1)
+
+    return(data)
 """
 
 num_str="0015" 

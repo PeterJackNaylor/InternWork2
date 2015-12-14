@@ -183,6 +183,7 @@ def final_classif_HMM(data,obj_norm,
                   classif_3state="3state",classif_final="Pred_fusion",
                   classif_hmm="HMM",
                   ratio=5.9/60,
+                  plot=True,
                   obs_number=0):
     print "Here we are going to join the corrected data (from R) to our current data in Python \n "
     data.ix[data.HMM==1,classif_hmm]="M"
@@ -245,7 +246,18 @@ def final_classif_HMM(data,obj_norm,
            'Standard deviation' : pd.Series([np.std(G1_p),np.std(S_p),np.std(G2_p),np.std(CC_p)], index=['G1', 'S', 'G2','CellCycle']),
            'Accepted trajectories': pd.Series([len(G1_p),len(S_p),len(G2_p),len(CC_p)], index=['G1', 'S', 'G2','CellCycle'])
               }
-              
+    print "Number of total trajectories: "+str(len(G1))
+    G1_p={"val":G1_p,"name":"G1"}
+    S_p={"val":S_p,"name":"S"}
+    G2_p={"val":G2_p,"name":"G2"}
+    CC_p={"val":CC_p,"name":"CellCycle"}
+    if plot:
+        for el in [G1_p,S_p,G2_p,CC_p]:
+            plt.hist(el["val"],bins=int(0.75*len(el["val"])))
+            plt.title(el["name"]+" lengths distribution")
+            plt.xlabel("times (hours)")
+            plt.ylabel("Frequency")
+            plt.show()
     if hasattr(obj_norm, 'train'):
         temp_X=obj_norm.train.ix[pd.notnull(obj_norm.train[classif_hmm]),[classif_hmm,y_name_3state]]
         print temp_X[y_name_3state].value_counts()
@@ -264,8 +276,8 @@ def Modify_transProbs(transProbs):
     transProbs_Mito=np.zeros(shape=(n,p))
     for i in range(n-1):
         TP_diag_i=transProbs[i,i]
-        TP_diag_i_1=transProbs[i+1,i+1]
-        TP_trans=transProbs[i,i+1]
+        TP_diag_i_1=transProbs[i,i+1]
+        TP_trans=transProbs[i+1,i+1]
         transProbs_Mito[i,i+1]=(TP_diag_i**3)*(TP_diag_i_1**1)*(TP_trans**0)+(TP_diag_i**2)*(TP_diag_i_1**1)*(TP_trans**1)+(TP_diag_i**1)*(TP_diag_i_1**1)*(TP_trans**2)+(TP_diag_i**0)*(TP_diag_i_1**1)*(TP_trans**3)
         transProbs_Mito[i,i]=1-transProbs_Mito[i,i+1]
     transProbs_Mito[n-1,n-1]=1

@@ -109,7 +109,7 @@ def FilterTraj(trajectories,Connexions,threshold,mat_features,final_mat,id_to_nu
     return(final_mat)
 
 class MitoCheck_Read():
-    def __init__(self,file_location="./NegativeControl",threshold=0,length_threshold=10):
+    def __init__(self,file_location="./NegativeControl",threshold=0,length_threshold=0):
         print("MitoCheck_Read()")
         self.data=None
         self.Dir=[]
