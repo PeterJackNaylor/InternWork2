@@ -15,7 +15,12 @@ def Gaussian(X,gamma,p):  ## computes matrix K
 	sp.fill_diagonal(I,f(0))
 	return(ds+I)
 
-def TCA(X_S,X_T,m,mu,gamma=1,p=2,random_sample_T=1):
+def Laplace(M):
+    d=sp.sum(M, axis=0)
+    D=sp.diag(d)
+    return(D-M)
+
+def TCA(X_S,X_T,m,mu,gamma=1,p=2,sigma=1,random_sample_T=1):
     
     X_S=sp.mat(X_S)
     X_T=sp.mat(X_T)
@@ -55,13 +60,20 @@ def TCA(X_S,X_T,m,mu,gamma=1,p=2,random_sample_T=1):
     sp.fill_diagonal(H,1)
     H-=1./(n_S+n_T)
     
+    K=Gaussian(sp.vstack([X_S,X_T]),sigma,p)
+
+    LA=Laplace(K)    
+    
+    
     Id=sp.mat(Id)
     H=sp.mat(H)
     K=sp.mat(K)
     L=sp.mat(L)
-    matrix_inv=Id+mu*K*L*K
+    LA=sp.mat(LA)
+    
+    matrix_inv=mu*Id+*K*(L+lamb*LA)*K
     matrix_inv=sp.linalg.inv(matrix_inv)
-    matrix=K*H*K
+    matrix=K*H**H*K
     matrix=matrix_inv*sp.mat(matrix)
     
     eigen_values=sp.linalg.eig(matrix)
@@ -132,6 +144,7 @@ def new_feature(data_used,W_eigenVectors,x,gamma,p,names):
     vertical_vect=sp.zeros(shape=(n,1))
     vertical_vect[:,0]=sp.array(data_used["kernel_distance"])
     new_feat=sp.mat(W_eigenVectors.T)*vertical_vect
+    pdb.set_trace()
     return(sp.array(new_feat).flatten())
 
 
@@ -140,7 +153,6 @@ def getting_kernel_projection(data,data_used,m,W_eigenVectors,gamma=1,p=2):
     data_used.columns=data.columns
     names=data.columns
     new_feat=["TCA_"+str(i) for i in range(m)]
-    data.apply(lambda x: new_feature(data_used,W_eigenVectors,x,gamma,p,names),axis=1)
     pdb.set_trace()
     data[new_feat]=data.apply(lambda x: new_feature(data_used,W_eigenVectors,x,gamma,p,names),axis=1)
 
@@ -152,8 +164,6 @@ num_str="0015"
 if os.path.isfile("H2b_data.csv"):
     print "The file existed so I loaded it."
     H2b = Traj_data(file_name="H2B_N_D_0.csv",pkl_traj_file="./Pkl_file") 
-
-else:    
     H2b=Traj_data() 
 
     H2b.extracting(num_str,"both_channels_0015.hdf5",'primary') 
