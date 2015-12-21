@@ -4,44 +4,55 @@
 import scipy as sp
 from scipy.spatial.distance import pdist,squareform
 
-def Gaussian(X,gamma,p):  ## computes matrix K
-	R=pdist(X, metric='euclidean', p=p, w=None, V=None, VI=None)
-	n=X.shape[0]
-	def f(x):
-		return(sp.exp(-(x**p)/(2*gamma**2)))
-	res=map(f,R)
-	ds=squareform(res)
-	I=sp.zeros(shape=(n,n))
-	sp.fill_diagonal(I,f(0))
-	return(ds+I)
+def Gaussian(R,kernel_para,p):  ## computes matrix K
+    def f(x):
+        return(sp.exp(-(x**p)/(2*kernel_para**2)))
+    res=map(f,R)
+    ds=squareform(res)	
+    n=ds.shape[0]
+    I=sp.zeros(shape=(n,n))
+    sp.fill_diagonal(I,f(0))
+    
+    return(ds+I)
 
-def Laplace(M):
+def Laplace(R,p,sigma):
+    
+    def f(x):
+        return(sp.exp(-(x**p)/(2*sigma**2)))
+    res=map(f,R)
+    ds=squareform(res)
+    n=ds.shape[0]
+    I=sp.zeros(shape=(n,n))
+    sp.fill_diagonal(I,f(0))
+    M=ds+I
     d=sp.sum(M, axis=0)
     D=sp.diag(d)
+    
     return(D-M)
 
-def TCA(X_S,X_T,m,mu,gamma=1,p=2,sigma=1,random_sample_T=1):
+def TCA(X_S,X_T,m=40,mu=0.1,kernel_para=1,p=2,sigma=1,random_sample_T=0.01):
     
     X_S=sp.mat(X_S)
     X_T=sp.mat(X_T)
     
+    
     n_S=X_S.shape[0]
     n_T=X_T.shape[0]
-    
     if random_sample_T!=1:
         print str(int(n_T*random_sample_T))+" samples taken from the task domain"
         index_sample=sp.random.choice([i for i in range(n_T)],size=int(n_T*random_sample_T))
         X_T=X_T[index_sample,:]
         
         n_T=X_T.shape[0]
-        
+    
+    n=n_S+n_T         
 
-    if m>(n_S+n_T):
+    if m>(n):
         print("m is larger then n_S+n_T, so it has been changed")
-        m=n_S+n_T
+        m=n
     
 
-    L=sp.zeros(shape=(n_S+n_T,n_S+n_T))
+    L=sp.zeros(shape=(n,n))
     L_SS=sp.ones(shape=(n_S,n_S))/(n_S**2)
     L_TT=sp.ones(shape=(n_T,n_T))/(n_T**2)
     L_ST=-sp.ones(shape=(n_S,n_T))/(n_S*n_T)
@@ -52,61 +63,101 @@ def TCA(X_S,X_T,m,mu,gamma=1,p=2,sigma=1,random_sample_T=1):
     L[n_S:n_S+n_T,0:n_S]=L_TS
     L[0:n_S,n_S:n_S+n_T]=L_ST
     
-    K=Gaussian(sp.vstack([X_S,X_T]),gamma,p)
-    n=K.shape[0]
+    
+    R=pdist(sp.vstack([X_S,X_T]), metric='euclidean', p=p, w=None, V=None, VI=None)
+
+    K=Gaussian(R,kernel_para,p)
+
     Id=sp.zeros(shape=(n,n))
-    H=sp.zeros(shape=(n_S+n_T,n_S+n_T))
+    H=sp.zeros(shape=(n,n))
     sp.fill_diagonal(Id,1)
     sp.fill_diagonal(H,1)
-    H-=1./(n_S+n_T)
-    
-    K=Gaussian(sp.vstack([X_S,X_T]),sigma,p)
+    H-=1./n
 
-    LA=Laplace(K)    
+    Id=sp.mat(Id)
+    H=sp.mat(H)
+    K=sp.mat(K)
+    L=sp.mat(L)
+    
+    matrix=sp.linalg.inv( K * L * K + mu * Id )*sp.mat( K * H * K )
+    
+    eigen_values=sp.linalg.eig(matrix)
+    
+    eigen_val=eigen_values[0][0:m]
+    eigen_vect=eigen_values[1][:,0:m]
+    return(eigen_val,eigen_vect,K,sp.vstack([X_S,X_T]))
+
+
+def SSTCA(X_S,y_S,X_T,m=40,mu=0.1,lamb=0.0001,kernel_para=1,p=2,sigma=1,gamma=0.5,random_sample_T=0.01):
+    
+    X_S=sp.mat(X_S)
+    X_T=sp.mat(X_T)
+    
+    y_S=sp.array(y_S)
+    
+    n_S=X_S.shape[0]
+    n_T=X_T.shape[0]
+    if random_sample_T!=1:
+        print str(int(n_T*random_sample_T))+" samples taken from the task domain"
+        index_sample=sp.random.choice([i for i in range(n_T)],size=int(n_T*random_sample_T))
+        X_T=X_T[index_sample,:]
+        
+        n_T=X_T.shape[0]
+    
+    n=n_S+n_T         
+
+    if m>(n):
+        print("m is larger then n_S+n_T, so it has been changed")
+        m=n
+    
+
+    L=sp.zeros(shape=(n,n))
+    L_SS=sp.ones(shape=(n_S,n_S))/(n_S**2)
+    L_TT=sp.ones(shape=(n_T,n_T))/(n_T**2)
+    L_ST=-sp.ones(shape=(n_S,n_T))/(n_S*n_T)
+    L_TS=-sp.ones(shape=(n_T,n_S))/(n_S*n_T)
+    
+    L[0:n_S,0:n_S]=L_SS
+    L[n_S:n_S+n_T,n_S:n_S+n_T]=L_TT
+    L[n_S:n_S+n_T,0:n_S]=L_TS
+    L[0:n_S,n_S:n_S+n_T]=L_ST
     
     
+    R=pdist(sp.vstack([X_S,X_T]), metric='euclidean', p=p, w=None, V=None, VI=None)
+
+    K=Gaussian(R,kernel_para,p)
+
+    Id=sp.zeros(shape=(n,n))
+    H=sp.zeros(shape=(n,n))
+    sp.fill_diagonal(Id,1)
+    sp.fill_diagonal(H,1)
+    H-=1./n
+
+    LA=Laplace(R,p,sigma)    
+
+    K_hat_y=sp.zeros(shape=(n,n))
+    K_hat_y[0,0]=1
+    for i in range(1,n_S):
+        K_hat_y[i,i]=1
+        for j in range(i):
+            if y_S[i]==y_S[j]:
+                K_hat_y[i,j]=1
+                K_hat_y[j,i]=1
+                
+    K_hat_y=gamma*K_hat_y+(1-gamma)*Id
     Id=sp.mat(Id)
     H=sp.mat(H)
     K=sp.mat(K)
     L=sp.mat(L)
     LA=sp.mat(LA)
     
-    matrix_inv=mu*Id+*K*(L+lamb*LA)*K
-    matrix_inv=sp.linalg.inv(matrix_inv)
-    matrix=K*H**H*K
-    matrix=matrix_inv*sp.mat(matrix)
+    matrix=sp.linalg.inv( K * (L + lamb*LA) * K + mu * Id )*sp.mat( K * H * K_hat_y * H * K )
     
     eigen_values=sp.linalg.eig(matrix)
-
+    
     eigen_val=eigen_values[0][0:m]
     eigen_vect=eigen_values[1][:,0:m]
-    return(eigen_val,eigen_vect,K,sp.vstack([X_S,X_T]))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return(eigen_val,eigen_vect,K,LA,K_hat_y,sp.vstack([X_S,X_T]))
 
 
 
